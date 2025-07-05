@@ -355,9 +355,9 @@ async def database_exception_handler(
                 "type": "DatabaseError",
                 "message": error_message,
                 "details": {
-                    "database_error": str(exc.orig)
-                    if hasattr(exc, "orig")
-                    else str(exc)
+                    "database_error": (
+                        str(exc.orig) if hasattr(exc, "orig") else str(exc)
+                    )
                 },
                 "path": request.url.path,
                 "method": request.method,
