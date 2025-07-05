@@ -65,16 +65,15 @@ async def health_check():
     基礎健康檢查端點，包含數據庫連接檢查
     """
     from app.core.database import check_db_health
-    
+
     # 檢查數據庫連接
     db_healthy = await check_db_health()
-    
+
     if not db_healthy:
         raise HTTPException(
-            status_code=503,
-            detail="Database connection failed - system is unhealthy"
+            status_code=503, detail="Database connection failed - system is unhealthy"
         )
-    
+
     return HealthResponse(
         status="ok",
         timestamp=datetime.utcnow(),
