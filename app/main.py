@@ -179,41 +179,9 @@ async def health_check() -> Dict[str, Any]:
     }
 
 
-# API health check endpoint
-@app.get("/api/v1/health", tags=["Health"])
-async def api_health_check() -> Dict[str, Any]:
-    """
-    API health check endpoint with database connectivity check.
-
-    Returns:
-        Dict[str, Any]: Detailed health status
-    """
-    from app.core.database import check_db_health
-
-    # Check database connectivity
-    db_healthy = await check_db_health()
-
-    health_status = {
-        "status": "healthy" if db_healthy else "unhealthy",
-        "app_name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "environment": settings.ENVIRONMENT,
-        "timestamp": time.time(),
-        "checks": {
-            "database": "healthy" if db_healthy else "unhealthy",
-            "api": "healthy",
-        },
-    }
-
-    # Return appropriate status code
-    status_code = (
-        status.HTTP_200_OK if db_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
-    )
-
-    return JSONResponse(
-        content=health_status,
-        status_code=status_code,
-    )
+# Removed duplicate API health check endpoint
+# The health check functionality is now handled by the /api/v1/system/health endpoint
+# in the health.py router
 
 
 # Root endpoint

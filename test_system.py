@@ -100,7 +100,6 @@ class SystemTester:
         # 測試端點列表
         test_endpoints = [
             ("/health", 200, "基礎健康檢查"),
-            ("/api/v1/health", 200, "API v1 健康檢查"),
             ("/api/v1/system/health", 200, "系統健康檢查"),
             ("/api/v1/system/database/status", 200, "數據庫狀態檢查"),
             ("/api/v1/system/models/validate", 200, "模型驗證"),
