@@ -17,6 +17,20 @@ from app.schemas.project import (
     ProjectSummary,
     ProjectUpdate,
 )
+from app.schemas.pointcloud import (
+    BoundingBox,
+    FileDownloadResponse,
+    FileUploadResponse,
+    PointCloudAnalysis,
+    PointCloudFileBase,
+    PointCloudFileCreate,
+    PointCloudFileListResponse,
+    PointCloudFileResponse,
+    PointCloudFileSummary,
+    PointCloudFileUpdate,
+    PointCloudPreview,
+    PointCloudStats,
+)
 from app.schemas.user import (
     EmailVerification,
     PasswordChange,
@@ -65,4 +79,17 @@ __all__ = [
     "ProjectMemberUpdate",
     "ProjectMemberResponse",
     "ProjectMemberListResponse",
+    # Point cloud schemas
+    "BoundingBox",
+    "PointCloudFileBase",
+    "PointCloudFileCreate",
+    "PointCloudFileUpdate",
+    "PointCloudFileResponse",
+    "PointCloudFileSummary",
+    "PointCloudFileListResponse",
+    "FileUploadResponse",
+    "FileDownloadResponse",
+    "PointCloudAnalysis",
+    "PointCloudPreview",
+    "PointCloudStats",
 ]

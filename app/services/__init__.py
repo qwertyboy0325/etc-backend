@@ -1,9 +1,7 @@
-"""Services package initialization."""
+"""Services for business logic."""
 
-from app.services.auth import AuthService
-from app.services.project import ProjectService
+from .auth import AuthService
+from .file_upload import FileUploadService
+from .project import ProjectService
 
-__all__ = [
-    "AuthService",
-    "ProjectService",
-]
+__all__ = ["AuthService", "FileUploadService", "ProjectService"]

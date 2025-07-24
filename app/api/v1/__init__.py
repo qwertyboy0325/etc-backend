@@ -6,6 +6,7 @@ from app.api.v1.auth import router as auth_router
 
 # Import route modules
 from app.api.v1.health import router as health_router
+from app.api.v1.pointcloud import router as pointcloud_router
 from app.api.v1.projects import router as projects_router
 
 # Create main API router
@@ -19,6 +20,9 @@ api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 
 # Include project management routes
 api_router.include_router(projects_router, prefix="/projects", tags=["Projects"])
+
+# Include point cloud file management routes
+api_router.include_router(pointcloud_router, tags=["Point Cloud Files"])
 
 # Include other route modules (to be implemented)
 # from app.api.v1.users import router as users_router
@@ -58,6 +62,12 @@ async def api_root():
             "projects": "/projects",
             "create_project": "/projects",
             "project_members": "/projects/{project_id}/members",
+            # Point cloud file endpoints
+            "upload_file": "/projects/{project_id}/files/upload",
+            "list_files": "/projects/{project_id}/files",
+            "file_details": "/projects/{project_id}/files/{file_id}",
+            "download_file": "/projects/{project_id}/files/{file_id}/download",
+            "file_stats": "/projects/{project_id}/files/stats",
         },
     }
 
