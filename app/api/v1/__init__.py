@@ -2,10 +2,11 @@
 
 from fastapi import APIRouter
 
+from app.api.v1.auth import router as auth_router
+
 # Import route modules
 from app.api.v1.health import router as health_router
-
-# from app.api.v1.routes import auth, users, projects, tasks, annotations
+from app.api.v1.projects import router as projects_router
 
 # Create main API router
 api_router = APIRouter()
@@ -13,12 +14,20 @@ api_router = APIRouter()
 # Include health check routes
 api_router.include_router(health_router, prefix="/system", tags=["System"])
 
-# Include all route modules (commented out for now)
-# api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-# api_router.include_router(users.router, prefix="/users", tags=["Users"])
-# api_router.include_router(projects.router, prefix="/projects", tags=["Projects"])
-# api_router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])
-# api_router.include_router(annotations.router, prefix="/annotations", tags=["Annotations"])
+# Include authentication routes
+api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+
+# Include project management routes
+api_router.include_router(projects_router, prefix="/projects", tags=["Projects"])
+
+# Include other route modules (to be implemented)
+# from app.api.v1.users import router as users_router
+# from app.api.v1.tasks import router as tasks_router
+# from app.api.v1.annotations import router as annotations_router
+
+# api_router.include_router(users_router, prefix="/users", tags=["Users"])
+# api_router.include_router(tasks_router, prefix="/tasks", tags=["Tasks"])
+# api_router.include_router(annotations_router, prefix="/annotations", tags=["Annotations"])
 
 
 # Root endpoint for API v1
@@ -30,11 +39,25 @@ async def api_root():
         "version": "1.0.0",
         "status": "active",
         "endpoints": {
+            # System endpoints
             "health": "/system/health",
             "database_status": "/system/database/status",
             "models_validate": "/system/models/validate",
             "system_info": "/system/info",
             "ping": "/system/ping",
+            # Authentication endpoints
+            "register": "/auth/register",
+            "login": "/auth/login",
+            "logout": "/auth/logout",
+            "refresh": "/auth/refresh",
+            "me": "/auth/me",
+            "verify_token": "/auth/verify-token",
+            "change_password": "/auth/change-password",
+            "deactivate": "/auth/deactivate",
+            # Project endpoints
+            "projects": "/projects",
+            "create_project": "/projects",
+            "project_members": "/projects/{project_id}/members",
         },
     }
 
