@@ -88,9 +88,19 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:3002",  # 添加3002端口
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",  # 添加3002端口
+        "http://192.168.0.104:3000",
+        "http://192.168.0.104:3001",
+        "http://192.168.0.104:3002",  # 添加3002端口
+    ] + [str(origin) for origin in settings.BACKEND_CORS_ORIGINS],  # 同時使用config中的設定
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 

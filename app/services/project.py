@@ -226,14 +226,14 @@ class ProjectService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
 
-        # Check permissions (only project creator or system admin can delete)
+        # Check permissions (only project creator, admin, or system admin can delete)
         if project.created_by != user_id:
-            # Check if user is system admin
+            # Check if user is admin or system admin
             user = await self.db.get(User, user_id)
-            if not user or not user.is_system_admin:
+            if not user or (not user.is_admin and not user.is_system_admin):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only project creator or system admin can delete project",
+                    detail="Only project creator, admin, or system admin can delete project",
                 )
 
         try:

@@ -132,8 +132,8 @@ class ProjectPermissionChecker:
 
         from app.models.project import ProjectMember
 
-        # System admins can access everything
-        if current_user.global_role == GlobalRole.SYSTEM_ADMIN:
+        # System admins and admins can access everything
+        if current_user.global_role in [GlobalRole.SYSTEM_ADMIN, GlobalRole.ADMIN]:
             return current_user
 
         # Check project membership

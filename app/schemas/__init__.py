@@ -1,5 +1,38 @@
 """Schemas package initialization."""
 
+from app.schemas.annotation import (
+    AnnotationBase,
+    AnnotationCreate,
+    AnnotationUpdate,
+    AnnotationSubmit,
+    AnnotationResponse,
+    AnnotationListResponse,
+    AnnotationSummary,
+    AnnotationStats,
+    AnnotationReviewCreate,
+    AnnotationReviewResponse,
+    BulkAnnotationReview,
+    BulkAnnotationReviewResponse,
+    AnnotationFilter,
+    AnnotationExport,
+    AnnotatorInfo,
+    TaskInfo,
+    VehicleTypeInfo,
+)
+from app.schemas.pointcloud import (
+    BoundingBox,
+    FileDownloadResponse,
+    FileUploadResponse,
+    PointCloudAnalysis,
+    PointCloudFileBase,
+    PointCloudFileCreate,
+    PointCloudFileListResponse,
+    PointCloudFileResponse,
+    PointCloudFileSummary,
+    PointCloudFileUpdate,
+    PointCloudPreview,
+    PointCloudStats,
+)
 from app.schemas.project import (
     ProjectBase,
     ProjectCreate,
@@ -16,20 +49,6 @@ from app.schemas.project import (
     ProjectStats,
     ProjectSummary,
     ProjectUpdate,
-)
-from app.schemas.pointcloud import (
-    BoundingBox,
-    FileDownloadResponse,
-    FileUploadResponse,
-    PointCloudAnalysis,
-    PointCloudFileBase,
-    PointCloudFileCreate,
-    PointCloudFileListResponse,
-    PointCloudFileResponse,
-    PointCloudFileSummary,
-    PointCloudFileUpdate,
-    PointCloudPreview,
-    PointCloudStats,
 )
 from app.schemas.user import (
     EmailVerification,
@@ -48,6 +67,24 @@ from app.schemas.user import (
 )
 
 __all__ = [
+    # Annotation schemas
+    "AnnotationBase",
+    "AnnotationCreate",
+    "AnnotationUpdate",
+    "AnnotationSubmit",
+    "AnnotationResponse",
+    "AnnotationListResponse",
+    "AnnotationSummary",
+    "AnnotationStats",
+    "AnnotationReviewCreate",
+    "AnnotationReviewResponse",
+    "BulkAnnotationReview",
+    "BulkAnnotationReviewResponse",
+    "AnnotationFilter",
+    "AnnotationExport",
+    "AnnotatorInfo",
+    "TaskInfo",
+    "VehicleTypeInfo",
     # User schemas
     "UserBase",
     "UserCreate",
