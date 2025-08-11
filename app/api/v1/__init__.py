@@ -10,6 +10,7 @@ from app.api.v1.health import router as health_router
 from app.api.v1.pointcloud import router as pointcloud_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.tasks import router as tasks_router
+from app.api.v1.vehicle_types import router as vehicle_types_router
 
 # Create main API router
 api_router = APIRouter()
@@ -34,6 +35,9 @@ api_router.include_router(tasks_router, tags=["Tasks"])
 
 # Include annotation management routes
 api_router.include_router(annotations_router, tags=["Annotations"])
+
+# Include vehicle types routes
+api_router.include_router(vehicle_types_router, tags=["Vehicle Types"])
 
 # Include other route modules (to be implemented)
 # from app.api.v1.users import router as users_router
