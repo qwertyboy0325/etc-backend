@@ -3,12 +3,12 @@
 """
 
 import asyncio
-import numpy as np
 import os
 from datetime import datetime
-from typing import Any, Dict
 from pathlib import Path
+from typing import Any, Dict
 
+import numpy as np
 import psutil
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -244,50 +244,50 @@ async def generate_sample_npy():
         # 創建uploads目錄（如果不存在）
         uploads_dir = Path("uploads")
         uploads_dir.mkdir(exist_ok=True)
-        
+
         # 生成不同類型的示例點雲數據
         sample_files = []
-        
+
         # 1. 球狀分布的點雲
         sphere_points = 5000
         radius = 50
-        theta = np.random.uniform(0, 2*np.pi, sphere_points)
+        theta = np.random.uniform(0, 2 * np.pi, sphere_points)
         phi = np.random.uniform(0, np.pi, sphere_points)
         r = np.random.uniform(0, radius, sphere_points)
-        
+
         x_sphere = r * np.sin(phi) * np.cos(theta)
         y_sphere = r * np.sin(phi) * np.sin(theta)
         z_sphere = r * np.cos(phi)
-        
+
         sphere_data = np.column_stack([x_sphere, y_sphere, z_sphere]).astype(np.float32)
         sphere_file = uploads_dir / "sphere_sample.npy"
         np.save(sphere_file, sphere_data)
         sample_files.append(str(sphere_file))
-        
+
         # 2. 立方體分布的點雲
         cube_points = 3000
         cube_data = np.random.uniform(-30, 30, (cube_points, 3)).astype(np.float32)
         cube_file = uploads_dir / "cube_sample.npy"
         np.save(cube_file, cube_data)
         sample_files.append(str(cube_file))
-        
+
         # 3. 圓柱體分布的點雲
         cylinder_points = 4000
         radius_cyl = 20
         height = 60
-        
-        theta_cyl = np.random.uniform(0, 2*np.pi, cylinder_points)
-        z_cyl = np.random.uniform(-height/2, height/2, cylinder_points)
+
+        theta_cyl = np.random.uniform(0, 2 * np.pi, cylinder_points)
+        z_cyl = np.random.uniform(-height / 2, height / 2, cylinder_points)
         r_cyl = np.random.uniform(0, radius_cyl, cylinder_points)
-        
+
         x_cyl = r_cyl * np.cos(theta_cyl)
         y_cyl = r_cyl * np.sin(theta_cyl)
-        
+
         cylinder_data = np.column_stack([x_cyl, y_cyl, z_cyl]).astype(np.float32)
         cylinder_file = uploads_dir / "cylinder_sample.npy"
         np.save(cylinder_file, cylinder_data)
         sample_files.append(str(cylinder_file))
-        
+
         # 4. 車輛形狀的點雲（簡化版）
         car_points = 6000
         # 車身（長方體）
@@ -295,37 +295,43 @@ async def generate_sample_npy():
         x_body = np.random.uniform(-25, 25, body_points)
         y_body = np.random.uniform(-10, 10, body_points)
         z_body = np.random.uniform(0, 8, body_points)
-        
+
         # 車輪（圓柱體）
         wheel_points = car_points - body_points
         wheel_radius = 8
         wheel_height = 4
-        
-        theta_wheel = np.random.uniform(0, 2*np.pi, wheel_points)
+
+        theta_wheel = np.random.uniform(0, 2 * np.pi, wheel_points)
         z_wheel = np.random.uniform(0, wheel_height, wheel_points)
         r_wheel = np.random.uniform(0, wheel_radius, wheel_points)
-        
-        x_wheel = r_wheel * np.cos(theta_wheel) + np.random.choice([-20, 20], wheel_points)
+
+        x_wheel = r_wheel * np.cos(theta_wheel) + np.random.choice(
+            [-20, 20], wheel_points
+        )
         y_wheel = r_wheel * np.sin(theta_wheel)
-        
-        car_data = np.vstack([
-            np.column_stack([x_body, y_body, z_body]),
-            np.column_stack([x_wheel, y_wheel, z_wheel])
-        ]).astype(np.float32)
-        
+
+        car_data = np.vstack(
+            [
+                np.column_stack([x_body, y_body, z_body]),
+                np.column_stack([x_wheel, y_wheel, z_wheel]),
+            ]
+        ).astype(np.float32)
+
         car_file = uploads_dir / "car_sample.npy"
         np.save(car_file, car_data)
         sample_files.append(str(car_file))
-        
+
         return {
             "message": "Sample NPY files generated successfully",
             "files": sample_files,
             "total_files": len(sample_files),
-            "upload_dir": str(uploads_dir.absolute())
+            "upload_dir": str(uploads_dir.absolute()),
         }
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate sample files: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate sample files: {str(e)}"
+        )
 
 
 @router.get("/download-sample/{filename}")
@@ -335,15 +341,17 @@ async def download_sample_file(filename: str):
     """
     try:
         file_path = Path("uploads") / filename
-        
+
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="File not found")
-        
+
         return FileResponse(
             path=str(file_path),
             filename=filename,
-            media_type="application/octet-stream"
+            media_type="application/octet-stream",
         )
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to download file: {str(e)}"
+        )

@@ -2,10 +2,9 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.auth import router as auth_router
-
 # Import route modules
 from app.api.v1.annotations import router as annotations_router
+from app.api.v1.auth import router as auth_router
 from app.api.v1.files import router as files_router
 from app.api.v1.health import router as health_router
 from app.api.v1.pointcloud import router as pointcloud_router

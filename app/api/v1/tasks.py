@@ -103,7 +103,9 @@ async def list_project_tasks(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(20, ge=1, le=100, description="Page size"),
     status_filter: Optional[TaskStatus] = Query(None, description="Filter by status"),
-    priority_filter: Optional[TaskPriority] = Query(None, description="Filter by priority"),
+    priority_filter: Optional[TaskPriority] = Query(
+        None, description="Filter by priority"
+    ),
     assigned_to: Optional[UUID] = Query(None, description="Filter by assignee"),
     created_by: Optional[UUID] = Query(None, description="Filter by creator"),
     name_search: Optional[str] = Query(None, description="Search by task name"),
@@ -358,7 +360,7 @@ async def unassign_task(
     """
     Unassign a task from its current assignee.
 
-    **Required permissions**: 
+    **Required permissions**:
     - Task assignee (can unassign themselves)
     - Project REVIEWER or higher (can unassign any task)
 
@@ -366,7 +368,9 @@ async def unassign_task(
     - Task must be in ASSIGNED or IN_PROGRESS status
     """
     try:
-        task = await task_service.unassign_task(task_id=task_id, user_id=current_user.id)
+        task = await task_service.unassign_task(
+            task_id=task_id, user_id=current_user.id
+        )
 
         if task.project_id != project_id:
             raise HTTPException(
@@ -424,7 +428,9 @@ async def auto_assign_task(
             logger.info(f"Task {task.id} auto-assigned to {current_user.email}")
             return task_response
         else:
-            logger.info(f"No tasks available for auto-assignment to {current_user.email}")
+            logger.info(
+                f"No tasks available for auto-assignment to {current_user.email}"
+            )
             return None
 
     except Exception as e:
@@ -579,4 +585,4 @@ async def get_task_stats(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve task statistics",
-        ) 
+        )

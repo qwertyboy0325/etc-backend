@@ -36,7 +36,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def get_annotation_service(db: AsyncSession = Depends(get_db)) -> AnnotationService:
+async def get_annotation_service(
+    db: AsyncSession = Depends(get_db),
+) -> AnnotationService:
     """Get annotation service instance."""
     return AnnotationService(db)
 
@@ -51,16 +53,16 @@ async def require_annotation_access(
     annotation = await annotation_service.get_annotation(annotation_id, project_id)
     if not annotation:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Annotation not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Annotation not found"
         )
-    
+
     # Users can access their own annotations or if they have reviewer role
-    if (annotation.annotator_id != current_user.id and 
-        not await require_project_access(project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], current_user)):
+    if annotation.annotator_id != current_user.id and not await require_project_access(
+        project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], current_user
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to access this annotation"
+            detail="Insufficient permissions to access this annotation",
         )
 
 
@@ -83,9 +85,7 @@ async def create_annotation(
     try:
         # Verify user has access to the project
         await require_project_access(
-            project_id, 
-            [ProjectRole.PROJECT_ADMIN, ProjectRole.ANNOTATOR], 
-            current_user
+            project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.ANNOTATOR], current_user
         )
 
         annotation = await annotation_service.create_annotation(
@@ -95,7 +95,7 @@ async def create_annotation(
             vehicle_type_id=annotation_data.vehicle_type_id,
             confidence=annotation_data.confidence,
             notes=annotation_data.notes,
-            annotation_data=annotation_data.annotation_data
+            annotation_data=annotation_data.annotation_data,
         )
 
         logger.info(f"Created annotation {annotation.id} for user {current_user.id}")
@@ -103,10 +103,7 @@ async def create_annotation(
 
     except Exception as e:
         logger.error(f"Error creating annotation: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get(
@@ -150,7 +147,7 @@ async def update_annotation(
             vehicle_type_id=annotation_data.vehicle_type_id,
             confidence=annotation_data.confidence,
             notes=annotation_data.notes,
-            annotation_data=annotation_data.annotation_data
+            annotation_data=annotation_data.annotation_data,
         )
 
         logger.info(f"Updated annotation {annotation_id} by user {current_user.id}")
@@ -158,10 +155,7 @@ async def update_annotation(
 
     except Exception as e:
         logger.error(f"Error updating annotation: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete(
@@ -180,19 +174,14 @@ async def delete_annotation(
     """Delete an annotation."""
     try:
         await annotation_service.delete_annotation(
-            annotation_id=annotation_id,
-            project_id=project_id,
-            user_id=current_user.id
+            annotation_id=annotation_id, project_id=project_id, user_id=current_user.id
         )
 
         logger.info(f"Deleted annotation {annotation_id} by user {current_user.id}")
 
     except Exception as e:
         logger.error(f"Error deleting annotation: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # Annotation workflow endpoints
@@ -214,18 +203,17 @@ async def submit_annotation(
         annotation = await annotation_service.submit_annotation(
             annotation_id=annotation_id,
             project_id=project_id,
-            annotator_id=current_user.id
+            annotator_id=current_user.id,
         )
 
-        logger.info(f"Submitted annotation {annotation_id} for review by user {current_user.id}")
+        logger.info(
+            f"Submitted annotation {annotation_id} for review by user {current_user.id}"
+        )
         return AnnotationResponse.model_validate(annotation)
 
     except Exception as e:
         logger.error(f"Error submitting annotation: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # Review endpoints
@@ -247,9 +235,7 @@ async def review_annotation(
     try:
         # Verify user has reviewer permissions
         await require_project_access(
-            project_id, 
-            [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], 
-            current_user
+            project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], current_user
         )
 
         review = await annotation_service.review_annotation(
@@ -258,18 +244,17 @@ async def review_annotation(
             reviewer_id=current_user.id,
             status=review_data.status,
             comments=review_data.comments,
-            rating=review_data.rating
+            rating=review_data.rating,
         )
 
-        logger.info(f"Reviewed annotation {annotation_id} with status {review_data.status} by user {current_user.id}")
+        logger.info(
+            f"Reviewed annotation {annotation_id} with status {review_data.status} by user {current_user.id}"
+        )
         return AnnotationReviewResponse.model_validate(review)
 
     except Exception as e:
         logger.error(f"Error reviewing annotation: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get(
@@ -288,20 +273,17 @@ async def get_pending_reviews(
     try:
         # Verify user has reviewer permissions
         await require_project_access(
-            project_id, 
-            [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], 
-            current_user
+            project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], current_user
         )
 
         annotations = await annotation_service.get_pending_reviews(project_id)
-        return [AnnotationResponse.model_validate(annotation) for annotation in annotations]
+        return [
+            AnnotationResponse.model_validate(annotation) for annotation in annotations
+        ]
 
     except Exception as e:
         logger.error(f"Error getting pending reviews: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post(
@@ -321,9 +303,7 @@ async def bulk_review_annotations(
     try:
         # Verify user has reviewer permissions
         await require_project_access(
-            project_id, 
-            [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], 
-            current_user
+            project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], current_user
         )
 
         success_count = 0
@@ -338,7 +318,7 @@ async def bulk_review_annotations(
                     project_id=project_id,
                     reviewer_id=current_user.id,
                     status=review_data.status,
-                    comments=review_data.comments
+                    comments=review_data.comments,
                 )
                 success_count += 1
             except Exception as e:
@@ -346,21 +326,20 @@ async def bulk_review_annotations(
                 failed_ids.append(annotation_id)
                 errors.append(f"Annotation {annotation_id}: {str(e)}")
 
-        logger.info(f"Bulk reviewed {success_count} annotations, {failed_count} failed by user {current_user.id}")
-        
+        logger.info(
+            f"Bulk reviewed {success_count} annotations, {failed_count} failed by user {current_user.id}"
+        )
+
         return BulkAnnotationReviewResponse(
             success_count=success_count,
             failed_count=failed_count,
             failed_ids=failed_ids,
-            errors=errors
+            errors=errors,
         )
 
     except Exception as e:
         logger.error(f"Error in bulk review: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # Query and list endpoints
@@ -376,7 +355,9 @@ async def list_annotations(
     annotation_service: AnnotationService = Depends(get_annotation_service),
     _: Project = Depends(validate_project_exists),
     # Query parameters
-    status: Optional[AnnotationStatus] = Query(None, description="Filter by annotation status"),
+    status: Optional[AnnotationStatus] = Query(
+        None, description="Filter by annotation status"
+    ),
     annotator_id: Optional[UUID] = Query(None, description="Filter by annotator"),
     task_id: Optional[UUID] = Query(None, description="Filter by task"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -387,12 +368,22 @@ async def list_annotations(
         # Verify user has access to project
         await require_project_access(
             project_id,
-            [ProjectRole.PROJECT_ADMIN, ProjectRole.ANNOTATOR, ProjectRole.REVIEWER, ProjectRole.VIEWER],
-            current_user
+            [
+                ProjectRole.PROJECT_ADMIN,
+                ProjectRole.ANNOTATOR,
+                ProjectRole.REVIEWER,
+                ProjectRole.VIEWER,
+            ],
+            current_user,
         )
 
         # For annotators, only show their own annotations unless they have reviewer+ permissions
-        if not await require_project_access(project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], current_user, raise_error=False):
+        if not await require_project_access(
+            project_id,
+            [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER],
+            current_user,
+            raise_error=False,
+        ):
             annotator_id = current_user.id
 
         annotations = await annotation_service.get_user_annotations(
@@ -400,32 +391,32 @@ async def list_annotations(
             project_id=project_id,
             status=status,
             limit=size,
-            offset=(page - 1) * size
+            offset=(page - 1) * size,
         )
 
         # For pagination, we need total count
         total_annotations = await annotation_service.get_user_annotations(
             annotator_id=annotator_id or current_user.id,
             project_id=project_id,
-            status=status
+            status=status,
         )
         total = len(total_annotations)
         pages = (total + size - 1) // size
 
         return AnnotationListResponse(
-            items=[AnnotationResponse.model_validate(annotation) for annotation in annotations],
+            items=[
+                AnnotationResponse.model_validate(annotation)
+                for annotation in annotations
+            ],
             total=total,
             page=page,
             size=size,
-            pages=pages
+            pages=pages,
         )
 
     except Exception as e:
         logger.error(f"Error listing annotations: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get(
@@ -446,19 +437,23 @@ async def get_task_annotations(
         # Verify user has access to project
         await require_project_access(
             project_id,
-            [ProjectRole.PROJECT_ADMIN, ProjectRole.ANNOTATOR, ProjectRole.REVIEWER, ProjectRole.VIEWER],
-            current_user
+            [
+                ProjectRole.PROJECT_ADMIN,
+                ProjectRole.ANNOTATOR,
+                ProjectRole.REVIEWER,
+                ProjectRole.VIEWER,
+            ],
+            current_user,
         )
 
         annotations = await annotation_service.get_task_annotations(task_id, project_id)
-        return [AnnotationResponse.model_validate(annotation) for annotation in annotations]
+        return [
+            AnnotationResponse.model_validate(annotation) for annotation in annotations
+        ]
 
     except Exception as e:
         logger.error(f"Error getting task annotations: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # Statistics endpoints
@@ -473,31 +468,39 @@ async def get_annotation_statistics(
     current_user: User = Depends(get_current_active_user),
     annotation_service: AnnotationService = Depends(get_annotation_service),
     _: Project = Depends(validate_project_exists),
-    annotator_id: Optional[UUID] = Query(None, description="Get stats for specific annotator"),
+    annotator_id: Optional[UUID] = Query(
+        None, description="Get stats for specific annotator"
+    ),
 ) -> AnnotationStats:
     """Get annotation statistics."""
     try:
         # Verify user has access to project
         await require_project_access(
             project_id,
-            [ProjectRole.PROJECT_ADMIN, ProjectRole.ANNOTATOR, ProjectRole.REVIEWER, ProjectRole.VIEWER],
-            current_user
+            [
+                ProjectRole.PROJECT_ADMIN,
+                ProjectRole.ANNOTATOR,
+                ProjectRole.REVIEWER,
+                ProjectRole.VIEWER,
+            ],
+            current_user,
         )
 
         # For annotators, only show their own stats unless they have reviewer+ permissions
-        if not await require_project_access(project_id, [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER], current_user, raise_error=False):
+        if not await require_project_access(
+            project_id,
+            [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER],
+            current_user,
+            raise_error=False,
+        ):
             annotator_id = current_user.id
 
         stats = await annotation_service.get_annotation_statistics(
-            project_id=project_id,
-            annotator_id=annotator_id
+            project_id=project_id, annotator_id=annotator_id
         )
 
         return AnnotationStats(**stats)
 
     except Exception as e:
         logger.error(f"Error getting annotation statistics: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        ) 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

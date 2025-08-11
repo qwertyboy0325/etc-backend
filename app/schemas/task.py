@@ -14,21 +14,33 @@ class TaskBase(BaseModel):
     """Base task schema with common fields."""
 
     name: str = Field(..., min_length=1, max_length=200, description="Task name")
-    description: Optional[str] = Field(None, max_length=1000, description="Task description")
-    priority: Optional[TaskPriority] = Field(TaskPriority.MEDIUM, description="Task priority")
-    max_annotations: Optional[int] = Field(3, ge=1, le=10, description="Maximum annotations per task")
-    require_review: Optional[bool] = Field(True, description="Whether task requires review")
+    description: Optional[str] = Field(
+        None, max_length=1000, description="Task description"
+    )
+    priority: Optional[TaskPriority] = Field(
+        TaskPriority.MEDIUM, description="Task priority"
+    )
+    max_annotations: Optional[int] = Field(
+        3, ge=1, le=10, description="Maximum annotations per task"
+    )
+    require_review: Optional[bool] = Field(
+        True, description="Whether task requires review"
+    )
     due_date: Optional[datetime] = Field(None, description="Task due date")
-    instructions: Optional[str] = Field(None, max_length=2000, description="Special instructions for task")
+    instructions: Optional[str] = Field(
+        None, max_length=2000, description="Special instructions for task"
+    )
 
 
 # Request schemas
 class TaskCreate(TaskBase):
     """Schema for creating a new task."""
 
-    pointcloud_file_id: UUID = Field(..., description="Point cloud file ID for this task")
+    pointcloud_file_id: UUID = Field(
+        ..., description="Point cloud file ID for this task"
+    )
 
-    @field_validator('name')
+    @field_validator("name")
     @classmethod
     def validate_name(cls, v: str) -> str:
         """Validate task name."""
@@ -36,7 +48,7 @@ class TaskCreate(TaskBase):
             raise ValueError("Task name cannot be empty")
         return v.strip()
 
-    @field_validator('due_date')
+    @field_validator("due_date")
     @classmethod
     def validate_due_date(cls, v: Optional[datetime]) -> Optional[datetime]:
         """Validate due date is in the future."""
@@ -56,7 +68,7 @@ class TaskUpdate(BaseModel):
     due_date: Optional[datetime] = None
     instructions: Optional[str] = Field(None, max_length=2000)
 
-    @field_validator('name')
+    @field_validator("name")
     @classmethod
     def validate_name(cls, v: Optional[str]) -> Optional[str]:
         """Validate task name if provided."""
@@ -64,7 +76,7 @@ class TaskUpdate(BaseModel):
             raise ValueError("Task name cannot be empty")
         return v.strip() if v else v
 
-    @field_validator('due_date')
+    @field_validator("due_date")
     @classmethod
     def validate_due_date(cls, v: Optional[datetime]) -> Optional[datetime]:
         """Validate due date is in the future."""
@@ -162,24 +174,25 @@ class TaskResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-    @field_validator('is_overdue', mode='before')
+    @field_validator("is_overdue", mode="before")
     @classmethod
     def compute_is_overdue(cls, v, info):
         """Compute if task is overdue."""
-        due_date = info.data.get('due_date')
-        status = info.data.get('status')
+        due_date = info.data.get("due_date")
+        status = info.data.get("status")
         if not due_date:
             return False
-        return (
-            due_date < datetime.utcnow() 
-            and status not in [TaskStatus.COMPLETED, TaskStatus.REVIEWED, TaskStatus.CANCELLED]
-        )
+        return due_date < datetime.utcnow() and status not in [
+            TaskStatus.COMPLETED,
+            TaskStatus.REVIEWED,
+            TaskStatus.CANCELLED,
+        ]
 
-    @field_validator('is_completed', mode='before')
+    @field_validator("is_completed", mode="before")
     @classmethod
     def compute_is_completed(cls, v, info):
         """Compute if task is completed."""
-        status = info.data.get('status')
+        status = info.data.get("status")
         return status in [TaskStatus.COMPLETED, TaskStatus.REVIEWED]
 
 
@@ -241,4 +254,4 @@ class TaskCompletionNotification(BaseModel):
     task_name: str
     project_id: UUID
     completed_by: str
-    completion_time: datetime 
+    completion_time: datetime

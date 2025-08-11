@@ -6,4 +6,10 @@ from .file_upload import FileUploadService
 from .project import ProjectService
 from .task import TaskService
 
-__all__ = ["AnnotationService", "AuthService", "FileUploadService", "ProjectService", "TaskService"]
+__all__ = [
+    "AnnotationService",
+    "AuthService",
+    "FileUploadService",
+    "ProjectService",
+    "TaskService",
+]

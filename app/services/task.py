@@ -11,19 +11,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.enums import TaskPriority, TaskStatus
+from app.models.pointcloud import PointCloudFile
 from app.models.project import Project, ProjectMember
 from app.models.task import Task
 from app.models.user import User
-from app.models.pointcloud import PointCloudFile
 from app.schemas.task import (
+    TaskAssignment,
     TaskCreate,
     TaskFilter,
     TaskListResponse,
     TaskResponse,
+    TaskStats,
     TaskSummary,
     TaskUpdate,
-    TaskAssignment,
-    TaskStats
 )
 
 logger = logging.getLogger(__name__)
@@ -42,17 +42,19 @@ class TaskService:
         """Create a new annotation task."""
         try:
             # Verify point cloud file exists and belongs to project
-            pointcloud_file = await self.db.get(PointCloudFile, task_data.pointcloud_file_id)
+            pointcloud_file = await self.db.get(
+                PointCloudFile, task_data.pointcloud_file_id
+            )
             if not pointcloud_file or pointcloud_file.project_id != project_id:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Point cloud file not found in this project"
+                    detail="Point cloud file not found in this project",
                 )
 
             if not pointcloud_file.can_create_tasks():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Cannot create tasks for this file (not processed or no points)"
+                    detail="Cannot create tasks for this file (not processed or no points)",
                 )
 
             # Create task
@@ -63,7 +65,11 @@ class TaskService:
                 pointcloud_file_id=task_data.pointcloud_file_id,
                 priority=task_data.priority or TaskPriority.MEDIUM,
                 max_annotations=task_data.max_annotations or 3,
-                require_review=task_data.require_review if task_data.require_review is not None else True,
+                require_review=(
+                    task_data.require_review
+                    if task_data.require_review is not None
+                    else True
+                ),
                 due_date=task_data.due_date,
                 instructions=task_data.instructions,
                 created_by=creator_id,
@@ -146,7 +152,13 @@ class TaskService:
                         and_(
                             Task.due_date.isnot(None),
                             Task.due_date < datetime.utcnow(),
-                            Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.REVIEWED, TaskStatus.CANCELLED])
+                            Task.status.notin_(
+                                [
+                                    TaskStatus.COMPLETED,
+                                    TaskStatus.REVIEWED,
+                                    TaskStatus.CANCELLED,
+                                ]
+                            ),
                         )
                     )
 
@@ -284,7 +296,7 @@ class TaskService:
         if task.status != TaskStatus.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Task cannot be assigned in current status"
+                detail="Task cannot be assigned in current status",
             )
 
         # Check if assigner has permission
@@ -298,7 +310,7 @@ class TaskService:
         if not await self._user_can_work_on_task(assignee_id, task.project_id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User is not a member of this project or lacks required permissions"
+                detail="User is not a member of this project or lacks required permissions",
             )
 
         # Check assignee workload
@@ -306,7 +318,7 @@ class TaskService:
         if current_load >= 10:  # Maximum concurrent tasks
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User has too many active tasks"
+                detail="User has too many active tasks",
             )
 
         try:
@@ -336,11 +348,13 @@ class TaskService:
         if task.status not in [TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Task cannot be unassigned in current status"
+                detail="Task cannot be unassigned in current status",
             )
 
         # Check permissions (assignee can unassign themselves, or manager can unassign)
-        if task.assigned_to != user_id and not await self._user_can_manage_task(user_id, task):
+        if task.assigned_to != user_id and not await self._user_can_manage_task(
+            user_id, task
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to unassign task",
@@ -382,31 +396,35 @@ class TaskService:
             if task.assigned_to != user_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only assignee can start task"
+                    detail="Only assignee can start task",
                 )
             if task.status != TaskStatus.ASSIGNED:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Task must be assigned before starting"
+                    detail="Task must be assigned before starting",
                 )
         elif new_status == TaskStatus.COMPLETED:
             # Only assignee can mark as completed
             if task.assigned_to != user_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only assignee can complete task"
+                    detail="Only assignee can complete task",
                 )
             if task.status != TaskStatus.IN_PROGRESS:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Task must be in progress before completing"
+                    detail="Task must be in progress before completing",
                 )
-        elif new_status in [TaskStatus.REVIEWED, TaskStatus.REJECTED, TaskStatus.CANCELLED]:
+        elif new_status in [
+            TaskStatus.REVIEWED,
+            TaskStatus.REJECTED,
+            TaskStatus.CANCELLED,
+        ]:
             # Only project managers can set these statuses
             if not await self._user_can_manage_task(user_id, task):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Insufficient permissions to set this status"
+                    detail="Insufficient permissions to set this status",
                 )
 
         try:
@@ -452,7 +470,7 @@ class TaskService:
                     and_(
                         Task.project_id == project_id,
                         Task.status == TaskStatus.PENDING,
-                        Task.assigned_to.is_(None)
+                        Task.assigned_to.is_(None),
                     )
                 )
                 .order_by(Task.priority.desc(), Task.created_at.asc())
@@ -493,7 +511,13 @@ class TaskService:
                     Task.project_id == project_id,
                     Task.due_date.isnot(None),
                     Task.due_date < datetime.utcnow(),
-                    Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.REVIEWED, TaskStatus.CANCELLED])
+                    Task.status.notin_(
+                        [
+                            TaskStatus.COMPLETED,
+                            TaskStatus.REVIEWED,
+                            TaskStatus.CANCELLED,
+                        ]
+                    ),
                 )
             )
             overdue_result = await self.db.execute(overdue_query)
@@ -501,8 +525,12 @@ class TaskService:
 
             # Calculate completion rate
             total_tasks = sum(status_counts.values())
-            completed_tasks = status_counts.get("completed", 0) + status_counts.get("reviewed", 0)
-            completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            completed_tasks = status_counts.get("completed", 0) + status_counts.get(
+                "reviewed", 0
+            )
+            completion_rate = (
+                (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            )
 
             return TaskStats(
                 total_tasks=total_tasks,
@@ -512,7 +540,7 @@ class TaskService:
                 completed_tasks=completed_tasks,
                 overdue_tasks=overdue_count,
                 completion_rate=round(completion_rate, 2),
-                status_breakdown=status_counts
+                status_breakdown=status_counts,
             )
 
         except Exception as e:
@@ -540,7 +568,7 @@ class TaskService:
         if task.status in [TaskStatus.COMPLETED, TaskStatus.REVIEWED]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete completed tasks"
+                detail="Cannot delete completed tasks",
             )
 
         try:
@@ -569,12 +597,13 @@ class TaskService:
 
         # Check if user is project admin
         from app.models.enums import ProjectRole
+
         query = select(ProjectMember).where(
             and_(
                 ProjectMember.project_id == task.project_id,
                 ProjectMember.user_id == user_id,
                 ProjectMember.is_active == True,
-                ProjectMember.role == ProjectRole.PROJECT_ADMIN
+                ProjectMember.role == ProjectRole.PROJECT_ADMIN,
             )
         )
         result = await self.db.execute(query)
@@ -583,16 +612,19 @@ class TaskService:
     async def _user_can_work_on_task(self, user_id: UUID, project_id: UUID) -> bool:
         """Check if user can work on tasks in this project."""
         from app.models.enums import ProjectRole
+
         query = select(ProjectMember).where(
             and_(
                 ProjectMember.project_id == project_id,
                 ProjectMember.user_id == user_id,
                 ProjectMember.is_active == True,
-                ProjectMember.role.in_([
-                    ProjectRole.ANNOTATOR,
-                    ProjectRole.REVIEWER,
-                    ProjectRole.PROJECT_ADMIN
-                ])
+                ProjectMember.role.in_(
+                    [
+                        ProjectRole.ANNOTATOR,
+                        ProjectRole.REVIEWER,
+                        ProjectRole.PROJECT_ADMIN,
+                    ]
+                ),
             )
         )
         result = await self.db.execute(query)
@@ -603,8 +635,8 @@ class TaskService:
         query = select(func.count()).where(
             and_(
                 Task.assigned_to == user_id,
-                Task.status.in_([TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS])
+                Task.status.in_([TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS]),
             )
         )
         result = await self.db.execute(query)
-        return result.scalar() 
+        return result.scalar()

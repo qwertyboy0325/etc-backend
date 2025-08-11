@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.annotation import Annotation, AnnotationReview
-from app.models.enums import AnnotationStatus, ReviewStatus, ProjectRole
+from app.models.enums import AnnotationStatus, ProjectRole, ReviewStatus
 from app.models.project import ProjectMember
 from app.models.task import Task
 from app.models.user import User
@@ -35,7 +35,7 @@ class AnnotationService:
         vehicle_type_id: Optional[UUID] = None,
         confidence: Optional[float] = None,
         notes: Optional[str] = None,
-        annotation_data: Optional[Dict[str, Any]] = None
+        annotation_data: Optional[Dict[str, Any]] = None,
     ) -> Annotation:
         """Create a new annotation for a task."""
         try:
@@ -44,14 +44,14 @@ class AnnotationService:
             if not task or task.project_id != project_id:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Task not found in this project"
+                    detail="Task not found in this project",
                 )
 
             # Verify task is assigned to annotator
             if task.assigned_to != annotator_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Task is not assigned to this user"
+                    detail="Task is not assigned to this user",
                 )
 
             # Verify vehicle type belongs to project if provided
@@ -60,7 +60,7 @@ class AnnotationService:
                 if not vehicle_type or vehicle_type.project_id != project_id:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Vehicle type not found in this project"
+                        detail="Vehicle type not found in this project",
                     )
 
             # Create annotation
@@ -72,7 +72,7 @@ class AnnotationService:
                 confidence=confidence,
                 notes=notes,
                 extra_data=annotation_data or {},
-                status=AnnotationStatus.DRAFT
+                status=AnnotationStatus.DRAFT,
             )
 
             self.db.add(annotation)
@@ -91,16 +91,19 @@ class AnnotationService:
         self, annotation_id: UUID, project_id: UUID
     ) -> Optional[Annotation]:
         """Get annotation by ID within project context."""
-        query = select(Annotation).where(
-            and_(
-                Annotation.id == annotation_id,
-                Annotation.project_id == project_id
+        query = (
+            select(Annotation)
+            .where(
+                and_(
+                    Annotation.id == annotation_id, Annotation.project_id == project_id
+                )
             )
-        ).options(
-            selectinload(Annotation.task),
-            selectinload(Annotation.annotator),
-            selectinload(Annotation.vehicle_type),
-            selectinload(Annotation.reviews)
+            .options(
+                selectinload(Annotation.task),
+                selectinload(Annotation.annotator),
+                selectinload(Annotation.vehicle_type),
+                selectinload(Annotation.reviews),
+            )
         )
 
         result = await self.db.execute(query)
@@ -110,15 +113,16 @@ class AnnotationService:
         self, task_id: UUID, project_id: UUID
     ) -> List[Annotation]:
         """Get all annotations for a specific task."""
-        query = select(Annotation).where(
-            and_(
-                Annotation.task_id == task_id,
-                Annotation.project_id == project_id
+        query = (
+            select(Annotation)
+            .where(
+                and_(Annotation.task_id == task_id, Annotation.project_id == project_id)
             )
-        ).options(
-            selectinload(Annotation.annotator),
-            selectinload(Annotation.vehicle_type),
-            selectinload(Annotation.reviews)
+            .options(
+                selectinload(Annotation.annotator),
+                selectinload(Annotation.vehicle_type),
+                selectinload(Annotation.reviews),
+            )
         )
 
         result = await self.db.execute(query)
@@ -130,23 +134,26 @@ class AnnotationService:
         project_id: UUID,
         status: Optional[AnnotationStatus] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Annotation]:
         """Get annotations by user with optional status filter."""
         conditions = [
             Annotation.annotator_id == annotator_id,
-            Annotation.project_id == project_id
+            Annotation.project_id == project_id,
         ]
 
         if status:
             conditions.append(Annotation.status == status)
 
-        query = select(Annotation).where(
-            and_(*conditions)
-        ).options(
-            selectinload(Annotation.task),
-            selectinload(Annotation.vehicle_type)
-        ).limit(limit).offset(offset)
+        query = (
+            select(Annotation)
+            .where(and_(*conditions))
+            .options(
+                selectinload(Annotation.task), selectinload(Annotation.vehicle_type)
+            )
+            .limit(limit)
+            .offset(offset)
+        )
 
         result = await self.db.execute(query)
         return result.scalars().all()
@@ -159,29 +166,31 @@ class AnnotationService:
         vehicle_type_id: Optional[UUID] = None,
         confidence: Optional[float] = None,
         notes: Optional[str] = None,
-        annotation_data: Optional[Dict[str, Any]] = None
+        annotation_data: Optional[Dict[str, Any]] = None,
     ) -> Annotation:
         """Update an existing annotation."""
         try:
             annotation = await self.get_annotation(annotation_id, project_id)
             if not annotation:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Annotation not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Annotation not found"
                 )
 
             # Verify user can edit this annotation
             if annotation.annotator_id != annotator_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Cannot edit annotation created by another user"
+                    detail="Cannot edit annotation created by another user",
                 )
 
             # Can only edit draft or revision-requested annotations
-            if annotation.status not in [AnnotationStatus.DRAFT, AnnotationStatus.NEEDS_REVISION]:
+            if annotation.status not in [
+                AnnotationStatus.DRAFT,
+                AnnotationStatus.NEEDS_REVISION,
+            ]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Cannot edit submitted or approved annotations"
+                    detail="Cannot edit submitted or approved annotations",
                 )
 
             # Update fields
@@ -191,7 +200,7 @@ class AnnotationService:
                 if not vehicle_type or vehicle_type.project_id != project_id:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Vehicle type not found in this project"
+                        detail="Vehicle type not found in this project",
                     )
                 annotation.vehicle_type_id = vehicle_type_id
 
@@ -223,29 +232,31 @@ class AnnotationService:
             annotation = await self.get_annotation(annotation_id, project_id)
             if not annotation:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Annotation not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Annotation not found"
                 )
 
             # Verify user can submit this annotation
             if annotation.annotator_id != annotator_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Cannot submit annotation created by another user"
+                    detail="Cannot submit annotation created by another user",
                 )
 
             # Can only submit draft or revision-requested annotations
-            if annotation.status not in [AnnotationStatus.DRAFT, AnnotationStatus.NEEDS_REVISION]:
+            if annotation.status not in [
+                AnnotationStatus.DRAFT,
+                AnnotationStatus.NEEDS_REVISION,
+            ]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Annotation is already submitted or approved"
+                    detail="Annotation is already submitted or approved",
                 )
 
             # Validate annotation completeness
             if not annotation.vehicle_type_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Vehicle type is required before submission"
+                    detail="Vehicle type is required before submission",
                 )
 
             # Submit annotation
@@ -275,7 +286,7 @@ class AnnotationService:
         reviewer_id: UUID,
         status: ReviewStatus,
         comments: Optional[str] = None,
-        rating: Optional[int] = None
+        rating: Optional[int] = None,
     ) -> AnnotationReview:
         """Review an annotation (approve, reject, or request revision)."""
         try:
@@ -283,14 +294,13 @@ class AnnotationService:
             annotation = await self.get_annotation(annotation_id, project_id)
             if not annotation:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Annotation not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Annotation not found"
                 )
 
             if annotation.status != AnnotationStatus.SUBMITTED:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Annotation is not in submitted status"
+                    detail="Annotation is not in submitted status",
                 )
 
             # Verify reviewer has permission
@@ -304,7 +314,7 @@ class AnnotationService:
                 status=status,
                 comments=comments,
                 rating=rating,
-                reviewed_at=datetime.utcnow()
+                reviewed_at=datetime.utcnow(),
             )
 
             # Update annotation status based on review
@@ -333,15 +343,17 @@ class AnnotationService:
         """Get annotations pending review."""
         conditions = [
             Annotation.project_id == project_id,
-            Annotation.status == AnnotationStatus.SUBMITTED
+            Annotation.status == AnnotationStatus.SUBMITTED,
         ]
 
-        query = select(Annotation).where(
-            and_(*conditions)
-        ).options(
-            selectinload(Annotation.task),
-            selectinload(Annotation.annotator),
-            selectinload(Annotation.vehicle_type)
+        query = (
+            select(Annotation)
+            .where(and_(*conditions))
+            .options(
+                selectinload(Annotation.task),
+                selectinload(Annotation.annotator),
+                selectinload(Annotation.vehicle_type),
+            )
         )
 
         result = await self.db.execute(query)
@@ -356,49 +368,51 @@ class AnnotationService:
             conditions.append(Annotation.annotator_id == annotator_id)
 
         # Count by status
-        query = select(
-            Annotation.status,
-            func.count(Annotation.id).label('count')
-        ).where(
-            and_(*conditions)
-        ).group_by(Annotation.status)
+        query = (
+            select(Annotation.status, func.count(Annotation.id).label("count"))
+            .where(and_(*conditions))
+            .group_by(Annotation.status)
+        )
 
         result = await self.db.execute(query)
         status_counts = {row.status: row.count for row in result}
 
         # Average confidence
         confidence_query = select(
-            func.avg(Annotation.confidence).label('avg_confidence')
-        ).where(
-            and_(*conditions + [Annotation.confidence.isnot(None)])
-        )
+            func.avg(Annotation.confidence).label("avg_confidence")
+        ).where(and_(*conditions + [Annotation.confidence.isnot(None)]))
 
         confidence_result = await self.db.execute(confidence_query)
         avg_confidence = confidence_result.scalar() or 0.0
 
         return {
-            'status_counts': status_counts,
-            'average_confidence': float(avg_confidence),
-            'total_annotations': sum(status_counts.values())
+            "status_counts": status_counts,
+            "average_confidence": float(avg_confidence),
+            "total_annotations": sum(status_counts.values()),
         }
 
-    async def _verify_reviewer_permission(self, user_id: UUID, project_id: UUID) -> None:
+    async def _verify_reviewer_permission(
+        self, user_id: UUID, project_id: UUID
+    ) -> None:
         """Verify user has reviewer permissions in project."""
         query = select(ProjectMember).where(
             and_(
                 ProjectMember.user_id == user_id,
                 ProjectMember.project_id == project_id,
-                ProjectMember.is_active == True
+                ProjectMember.is_active == True,
             )
         )
 
         result = await self.db.execute(query)
         member = result.scalar_one_or_none()
 
-        if not member or member.role not in [ProjectRole.PROJECT_ADMIN, ProjectRole.REVIEWER]:
+        if not member or member.role not in [
+            ProjectRole.PROJECT_ADMIN,
+            ProjectRole.REVIEWER,
+        ]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions to review annotations"
+                detail="Insufficient permissions to review annotations",
             )
 
     async def delete_annotation(
@@ -409,22 +423,21 @@ class AnnotationService:
             annotation = await self.get_annotation(annotation_id, project_id)
             if not annotation:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Annotation not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Annotation not found"
                 )
 
             # Verify user can delete this annotation
             if annotation.annotator_id != user_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Cannot delete annotation created by another user"
+                    detail="Cannot delete annotation created by another user",
                 )
 
             # Can only delete draft annotations
             if annotation.status != AnnotationStatus.DRAFT:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Can only delete draft annotations"
+                    detail="Can only delete draft annotations",
                 )
 
             await self.db.delete(annotation)
@@ -436,4 +449,4 @@ class AnnotationService:
         except Exception as e:
             await self.db.rollback()
             logger.error(f"Error deleting annotation: {str(e)}")
-            raise 
+            raise
